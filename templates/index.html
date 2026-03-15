@@ -115,7 +115,7 @@
   <button id="poll-toggle" class="poll-btn running" onclick="togglePolling()">● Polling</button>
 </div>
 
-<div id="setup-banner" class="setup-banner">
+<div id="setup-banner" class="setup-banner" {% if ip %}style="display:none"{% else %}style="display:block"{% endif %}>
   <span class="msg">👋 Welcome — enter your inverter's IP address in the Configuration section below to get started.</span>
 </div>
 
@@ -383,6 +383,7 @@ async function saveConfig() {
   const r = await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ip, port: 8899})});
   const d = await r.json();
   document.getElementById('cfg-status').textContent = d.ok ? '✓ saved' : '✗ error';
+  if (d.ok) document.getElementById('setup-banner').style.display = 'none';
   setTimeout(() => document.getElementById('cfg-status').textContent = '', 3000);
 }
 let pollingOn = true;
