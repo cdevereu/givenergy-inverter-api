@@ -162,7 +162,7 @@ async def api_status():
     if cached_data is None:
         return JSONResponse({"error": "No data yet — inverter may not be configured or reachable"}, status_code=503)
     age = round(time.time() - last_poll_time, 1)
-    return {**cached_data, "cache_age_seconds": age}
+    return {**cached_data, "cache_age_seconds": age, "current_mode": current_mode}
 
 
 @app.post("/api/control")
