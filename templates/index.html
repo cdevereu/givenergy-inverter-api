@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inverter API</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: #1a1a2e; color: #e0e0e0; padding: 1rem; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .8rem; }
+  h1 { font-size: 1.3rem; margin: 0; color: #8be9fd; }
+  h2 { font-size: 1rem; margin: .6rem 0 .4rem; color: #bd93f9; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .8rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background: #16213e; border-radius: 8px; padding: .8rem 1rem; }
+  .full { grid-column: 1 / -1; }
+
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: .2rem .4rem; font-size: .85rem; }
+  td:first-child { color: #999; }
+  .val { font-variant-numeric: tabular-nums; text-align: right; }
+
+  input, select, button { font-size: .85rem; padding: .35rem .5rem; border-radius: 4px; border: 1px solid #333; }
+  input { background: #0f3460; color: #fff; }
+  button { cursor: pointer; border: none; font-weight: 500; transition: all .15s; }
+
+  .btn { background: #0f3460; color: #8be9fd; padding: .45rem .9rem; border-radius: 6px; }
+  .btn:hover { background: #1a4a7a; transform: translateY(-1px); }
+
+  .pwr { font-size: 1.8rem; font-weight: 700; line-height: 1.2; }
+  .pwr-label { font-size: .7rem; color: #888; text-transform: uppercase; letter-spacing: .5px; }
+  .pwr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; text-align: center; margin: .4rem 0; }
+
+  .controls-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+  #log { font-family: monospace; font-size: .75rem; line-height: 1.6; }
+  .log-row { display: flex; gap: .4rem; }
+  .log-time { color: #555; min-width: 55px; }
+  .log-method { min-width: 36px; font-weight: 600; }
+  .log-method.GET { color: #50fa7b; }
+  .log-method.POST { color: #ffb86c; }
+  .log-method.POLL { color: #6272a4; }
+  .log-detail { color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .status-dot.ok { background: #50fa7b; }
+  .status-dot.off { background: #555; }
+
+  /* Quick controls styling */
+  .mode-btns { display: flex; gap: 0; border-radius: 8px; overflow: hidden; margin-bottom: .8rem; }
+  .mode-btn { flex: 1; padding: .7rem 1rem; text-align: center; font-size: .9rem; font-weight: 600;
+              border: none; cursor: pointer; transition: all .15s; position: relative; }
+  .mode-btn.normal { background: #1a3a2a; color: #6fcf97; }
+  .mode-btn.normal:hover { background: #245a3a; }
+  .mode-btn.pause { background: #3a1a1a; color: #eb5757; }
+  .mode-btn.pause:hover { background: #5a2a2a; }
+  .mode-btn.charge { background: #1a2a3a; color: #8be9fd; }
+  .mode-btn.charge:hover { background: #1a3a5a; }
+  .mode-btn.discharge { background: #2a1a3a; color: #bd93f9; }
+  .mode-btn.discharge:hover { background: #3a2a5a; }
+  .mode-btn .icon { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+
+  .power-control { background: #0d1b3e; border-radius: 8px; padding: .6rem .8rem; margin-bottom: .5rem;
+                   display: flex; align-items: center; gap: .6rem; }
+  .power-control label { font-size: .82rem; color: #bbb; min-width: 80px; }
+  .power-control input { width: 80px; text-align: right; border-radius: 6px; }
+  .power-control .unit { font-size: .78rem; color: #666; margin-left: -4px; }
+  .power-control button { border-radius: 6px; }
+
+  #ctrl-status { font-size: .78rem; min-height: 1.2em; color: #888; margin-top: .3rem; }
+
+  /* API guide */
+  .api-guide { background: #0d1b3e; border-radius: 8px; padding: 1rem; margin-top: .2rem; }
+  .api-section { margin-bottom: .8rem; }
+  .api-section:last-child { margin-bottom: 0; }
+  .api-method { display: inline-block; font-size: .7rem; font-weight: 700; padding: .15rem .4rem;
+                border-radius: 3px; margin-right: .4rem; font-family: monospace; }
+  .api-method.get { background: #1a3a2a; color: #6fcf97; }
+  .api-method.post { background: #3a2a1a; color: #ffb86c; }
+  .api-path { font-family: monospace; font-size: .85rem; color: #8be9fd; }
+  .api-desc { font-size: .78rem; color: #999; margin: .2rem 0 .3rem .1rem; }
+  .api-example { background: #111a33; border-radius: 4px; padding: .4rem .6rem; font-family: monospace;
+                 font-size: .75rem; color: #ccc; overflow-x: auto; white-space: pre; line-height: 1.5; }
+  .api-example .key { color: #8be9fd; }
+  .api-example .str { color: #f1fa8c; }
+  .api-example .num { color: #bd93f9; }
+  .api-divider { border: none; border-top: 1px solid #1a2a4a; margin: .6rem 0; }
+
+  .poll-btn { padding: .35rem .8rem; border-radius: 6px; font-size: .8rem; font-weight: 600; border: none; cursor: pointer; transition: all .15s; }
+  .poll-btn.running { background: #1a3a2a; color: #6fcf97; }
+  .poll-btn.running:hover { background: #245a3a; }
+  .poll-btn.stopped { background: #3a1a1a; color: #eb5757; }
+  .poll-btn.stopped:hover { background: #5a2a2a; }
+
+  @keyframes logFlash {
+    0%   { background: rgba(139,233,253,.2); }
+    100% { background: transparent; }
+  }
+  .log-new { animation: logFlash 1.5s ease-out; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ GivEnergy Inverter API</h1>
+  <button id="poll-toggle" class="poll-btn running" onclick="togglePolling()">● Polling</button>
+</div>
+
+<div class="grid">
+
+  <!-- Power readings -->
+  <div class="card full">
+    <h2><span id="status-dot" class="status-dot off"></span><span id="status-text" style="font-size:.8rem; color:#666;">waiting for data...</span></h2>
+    <div class="pwr-grid">
+      <div><div class="pwr" id="p-solar" style="color:#f1fa8c;">—</div><div class="pwr-label">Solar</div></div>
+      <div><div class="pwr" id="p-house" style="color:#50fa7b;">—</div><div class="pwr-label">House</div></div>
+      <div><div class="pwr" id="p-battery" style="color:#8be9fd;">—</div><div class="pwr-label">Battery</div></div>
+      <div><div class="pwr" id="p-grid" style="color:#ff79c6;">—</div><div class="pwr-label">Grid</div></div>
+    </div>
+  </div>
+
+  <!-- Details -->
+  <div class="card">
+    <h2>Inverter Details</h2>
+    <table>
+      <tr><td>Battery SoC</td><td class="val" id="d-soc">—</td></tr>
+      <tr><td>Battery temp</td><td class="val" id="d-battemp">—</td></tr>
+      <tr><td>Inverter temp</td><td class="val" id="d-ivttemp">—</td></tr>
+      <tr><td>AC voltage</td><td class="val" id="d-acv">—</td></tr>
+      <tr><td>AC frequency</td><td class="val" id="d-acf">—</td></tr>
+      <tr><td>Max charge rate</td><td class="val" id="d-maxchg">—</td></tr>
+      <tr><td>Max discharge rate</td><td class="val" id="d-maxdis">—</td></tr>
+      <tr><td>Serial</td><td class="val" id="d-serial">—</td></tr>
+      <tr><td>Status</td><td class="val" id="d-status">—</td></tr>
+    </table>
+  </div>
+
+  <!-- Energy today -->
+  <div class="card">
+    <h2>Energy Today (kWh)</h2>
+    <table>
+      <tr><td>Generated</td><td class="val" id="e-gen">—</td></tr>
+      <tr><td>Exported</td><td class="val" id="e-exp">—</td></tr>
+      <tr><td>Imported</td><td class="val" id="e-imp">—</td></tr>
+      <tr><td>Charge</td><td class="val" id="e-chg">—</td></tr>
+      <tr><td>Discharge</td><td class="val" id="e-dis">—</td></tr>
+    </table>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <h2>Quick Controls</h2>
+    <div class="mode-btns">
+      <button class="mode-btn charge" onclick="sendControl({action:'charge'})">
+        <span class="icon">⚡</span>Charge
+      </button>
+      <button class="mode-btn normal" onclick="sendControl({action:'normal'})">
+        <span class="icon">▶</span>Normal
+      </button>
+      <button class="mode-btn pause" onclick="sendControl({action:'pause'})">
+        <span class="icon">⏸</span>Pause
+      </button>
+      <button class="mode-btn discharge" onclick="sendControl({action:'discharge'})">
+        <span class="icon">🔋</span>Discharge
+      </button>
+    </div>
+    <div class="power-control">
+      <label>Max charge rate</label>
+      <input id="charge-w" type="number" min="0" step="100" value="0" placeholder="W">
+      <span class="unit">W</span>
+      <button class="btn" onclick="sendControl({action:'set_charge_power', watts:+document.getElementById('charge-w').value})">Set</button>
+    </div>
+    <div class="power-control">
+      <label>Max discharge rate</label>
+      <input id="discharge-w" type="number" min="0" step="100" value="0" placeholder="W">
+      <span class="unit">W</span>
+      <button class="btn" onclick="sendControl({action:'set_discharge_power', watts:+document.getElementById('discharge-w').value})">Set</button>
+    </div>
+    <div id="ctrl-status"></div>
+  </div>
+
+  <!-- Config -->
+  <div class="card">
+    <h2>Configuration</h2>
+    <div class="controls-row">
+      <label style="font-size:.82rem; color:#999;">Inverter IP</label>
+      <input id="cfg-ip" placeholder="e.g. 192.168.1.100" value="{{ ip }}" style="width:150px;">
+      <button class="btn" onclick="saveConfig()">Save</button>
+      <span id="cfg-status" style="font-size:.78rem;"></span>
+    </div>
+  </div>
+
+  <!-- API Log -->
+  <div class="card">
+    <h2>API Log</h2>
+    <div id="log"></div>
+  </div>
+
+  <!-- API Guide -->
+  <div class="card full">
+    <h2>📖 API Reference</h2>
+    <div class="api-guide">
+
+      <div class="api-section">
+        <span class="api-method get">GET</span><span class="api-path">/api/status</span>
+        <div class="api-desc">Returns cached inverter readings. Polled every ~10s. Never hits the inverter directly.</div>
+        <div class="api-example">curl http://<span class="api-host"></span>/api/status</div>
+        <div class="api-desc" style="margin-top:.3rem;">Response includes: solar_w, house_w, battery_w, grid_w, battery_percent,
+max_charge_power_w, max_discharge_power_w, energy_today_kwh, and more.</div>
+      </div>
+
+      <hr class="api-divider">
+
+      <div class="api-section">
+        <span class="api-method post">POST</span><span class="api-path">/api/control</span>
+        <div class="api-desc">Send commands to the inverter. All power values are in watts.</div>
+        <div class="api-example"><span class="key"># Set to normal mode (restore saved charge + discharge rates)</span>
+curl -X POST http://<span class="api-host"></span>/api/control \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"action"</span>: <span class="str">"normal"</span>}'
+
+<span class="key"># Pause (zero charge + discharge rate)</span>
+curl -X POST http://<span class="api-host"></span>/api/control \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"action"</span>: <span class="str">"pause"</span>}'
+
+<span class="key"># Force charge at full rate (schedule 00:00-23:59, unlimited)</span>
+curl -X POST http://<span class="api-host"></span>/api/control \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"action"</span>: <span class="str">"charge"</span>}'
+
+<span class="key"># Force discharge at full rate (schedule 00:00-23:59, unlimited)</span>
+curl -X POST http://<span class="api-host"></span>/api/control \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"action"</span>: <span class="str">"discharge"</span>}'
+
+<span class="key"># Set max charge rate in watts</span>
+curl -X POST http://<span class="api-host"></span>/api/control \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"action"</span>: <span class="str">"set_charge_power"</span>, <span class="str">"watts"</span>: <span class="num">1500</span>}'
+
+<span class="key"># Set max discharge rate in watts</span>
+curl -X POST http://<span class="api-host"></span>/api/control \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"action"</span>: <span class="str">"set_discharge_power"</span>, <span class="str">"watts"</span>: <span class="num">1500</span>}'</div>
+      </div>
+
+      <hr class="api-divider">
+
+      <div class="api-section">
+        <span class="api-method post">POST</span><span class="api-path">/api/config</span>
+        <div class="api-desc">Set the inverter IP address. Persisted across restarts.</div>
+        <div class="api-example">curl -X POST http://<span class="api-host"></span>/api/config \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"ip"</span>: <span class="str">"10.0.1.17"</span>}'</div>
+      </div>
+
+      <hr class="api-divider">
+
+      <div class="api-section">
+        <span class="api-method get">GET</span><span class="api-path">/api/log</span>
+        <div class="api-desc">Returns the last 200 API request log entries as JSON.</div>
+        <div class="api-example">curl http://<span class="api-host"></span>/api/log</div>
+      </div>
+
+      <hr class="api-divider">
+
+      <div class="api-section">
+        <span class="api-method get">GET</span><span class="api-path">/api/polling</span>
+        <div class="api-desc">Check whether background polling is currently enabled.</div>
+        <div class="api-example">curl http://<span class="api-host"></span>/api/polling</div>
+      </div>
+
+      <hr class="api-divider">
+
+      <div class="api-section">
+        <span class="api-method post">POST</span><span class="api-path">/api/polling</span>
+        <div class="api-desc">Start or stop background polling of the inverter.</div>
+        <div class="api-example"><span class="key"># Stop polling</span>
+curl -X POST http://<span class="api-host"></span>/api/polling \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"enabled"</span>: <span class="num">false</span>}'
+
+<span class="key"># Start polling</span>
+curl -X POST http://<span class="api-host"></span>/api/polling \
+  -H 'Content-Type: application/json' \
+  -d '{<span class="str">"enabled"</span>: <span class="num">true</span>}'</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+let lastLogKey = '';
+function fmt(w) { return (w === undefined || w === null) ? '—' : w + ' W'; }
+function fmtPwr(v) {
+  if (v === 'unlimited') return 'Unlimited';
+  return (v === undefined || v === null) ? '—' : v + ' W';
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/api/status');
+    if (!r.ok) { setOffline(); return; }
+    const d = await r.json();
+    if (d.error) { setOffline(); return; }
+    document.getElementById('p-solar').textContent = fmt(d.solar_w);
+    document.getElementById('p-house').textContent = fmt(d.house_w);
+    document.getElementById('p-battery').textContent = fmt(d.battery_w);
+    document.getElementById('p-grid').textContent = fmt(d.grid_w);
+    document.getElementById('d-soc').textContent = d.battery_percent + '%';
+    document.getElementById('d-battemp').textContent = d.battery_temp_c + ' °C';
+    document.getElementById('d-ivttemp').textContent = d.inverter_temp_c + ' °C';
+    document.getElementById('d-acv').textContent = d.ac_voltage + ' V';
+    document.getElementById('d-acf').textContent = d.ac_frequency_hz + ' Hz';
+    document.getElementById('d-maxchg').textContent = fmtPwr(d.max_charge_power_w);
+    document.getElementById('d-maxdis').textContent = fmtPwr(d.max_discharge_power_w);
+    document.getElementById('d-serial').textContent = d.serial;
+    document.getElementById('d-status').textContent = d.status;
+    const e = d.energy_today_kwh || {};
+    document.getElementById('e-gen').textContent = e.generated ?? '—';
+    document.getElementById('e-exp').textContent = e.exported ?? '—';
+    document.getElementById('e-imp').textContent = e.imported ?? '—';
+    document.getElementById('e-chg').textContent = e.charge ?? '—';
+    document.getElementById('e-dis').textContent = e.discharge ?? '—';
+    document.getElementById('status-dot').className = 'status-dot ok';
+    document.getElementById('status-text').textContent = d.status+' · '+d.cache_age_seconds+'s ago';
+  } catch(e) { setOffline(); }
+}
+function setOffline() {
+  document.getElementById('status-dot').className = 'status-dot off';
+  document.getElementById('status-text').textContent = 'no data';
+}
+
+async function refreshLog() {
+  try {
+    const r = await fetch('/api/log');
+    const rows = await r.json();
+    const visible = rows.slice(0, 10);
+    const newKey = visible.map(r => r.time+r.method+r.path+(r.detail||'')).join('|');
+    let newCount = 0;
+    if (lastLogKey && newKey !== lastLogKey) {
+      const oldFirst = lastLogKey.split('|')[0];
+      for (const row of visible) {
+        if ((row.time+row.method+row.path+(row.detail||'')) === oldFirst) break;
+        newCount++;
+      }
+      if (newCount === 0) newCount = 1;
+    }
+    lastLogKey = newKey;
+    document.getElementById('log').innerHTML = visible.map((r, i) =>
+      `<div class="log-row${i < newCount ? ' log-new' : ''}"><span class="log-time">${r.time}</span><span class="log-method ${r.method}">${r.method}</span><span>${r.path}</span> <span class="log-detail">${r.detail||''}</span></div>`
+    ).join('');
+  } catch(e) {}
+}
+async function saveConfig() {
+  const ip = document.getElementById('cfg-ip').value.trim();
+  const r = await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ip, port: 8899})});
+  const d = await r.json();
+  document.getElementById('cfg-status').textContent = d.ok ? '✓ saved' : '✗ error';
+  setTimeout(() => document.getElementById('cfg-status').textContent = '', 3000);
+}
+let pollingOn = true;
+async function togglePolling() {
+  pollingOn = !pollingOn;
+  const r = await fetch('/api/polling', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({enabled: pollingOn})});
+  const d = await r.json();
+  pollingOn = d.polling;
+  updatePollBtn();
+}
+function updatePollBtn() {
+  const btn = document.getElementById('poll-toggle');
+  btn.className = 'poll-btn ' + (pollingOn ? 'running' : 'stopped');
+  btn.textContent = pollingOn ? '● Polling' : '○ Stopped';
+}
+async function initPolling() {
+  try {
+    const r = await fetch('/api/polling');
+    const d = await r.json();
+    pollingOn = d.polling;
+    updatePollBtn();
+  } catch(e) {}
+}
+initPolling();
+
+async function sendControl(body) {
+  const el = document.getElementById('ctrl-status');
+  el.textContent = 'sending...';
+  try {
+    const r = await fetch('/api/control', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const d = await r.json();
+    el.textContent = d.ok ? '✓ '+(d.detail||d.action) : '✗ '+(d.error||'failed');
+  } catch(e) { el.textContent = '✗ '+e; }
+  setTimeout(() => el.textContent = '', 5000);
+  refreshLog();
+}
+setInterval(refresh, 5000);
+setInterval(refreshLog, 5000);
+setInterval(initPolling, 5000);
+refresh(); refreshLog();
+
+// Populate API reference URLs with the actual host
+document.querySelectorAll('.api-host').forEach(el => { el.textContent = location.host; });
+</script>
+</body>
+</html>

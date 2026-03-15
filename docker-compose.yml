@@ -1,0 +1,11 @@
+services:
+  inverter-api:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - inverter-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  inverter-data:
